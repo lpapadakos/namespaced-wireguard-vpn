@@ -100,7 +100,26 @@ expected values are set by default, most with dummy default values.
 - `TUNNEL_VPN_IP_ADDRESSES`:
   Comma-separated list of static IP addresses to assign to the tunnel interface
   in the VPN network namespace.
-  
+
+#### Conversion Script
+
+VPN hosters commonly give out a generated file in the wg-quick format.
+
+The script `namespaced-wireguard-vpn-convert` will allow one to quickly update
+their configuration file for namespaced-wireguard-vpn, with the values of the
+wg-quick conf specified as the first argument. It can also take a different
+value for the location of the `namespaced-wireguard-vpn.conf` file.
+
+NOTE: You might need to run the script as the user thar has R/W access to the
+`namespaced-wireguard-vpn.conf`, if your user doesnt have access to it
+(for example, with sudo)
+
+Relevant example:
+
+```
+sudo ./namespaced-wireguard-vpn-convert ./path_to_my_providers.conf
+```
+
 #### Tunnel
 
 This package provides a tunnel between the init namesapce and the created VPN
