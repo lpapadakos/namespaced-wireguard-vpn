@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+
+# This script facilitates the conversion of a stardard wg-quick configuration
+# to the environment file format used byt this project.
+# It will use that environment file as a template and apply the changed values
+# $1: Path to the wg-quick format configuration
+
+die() {
+    echo "${BASH_SOURCE[1]}: line ${BASH_LINENO[0]}: ${FUNCNAME[1]}: ${1:-Died}" >&2
+    exit 1
+}
+
+# Check if the correct number of arguments are provided
+if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+    echo "Usage: $0 <wg_config_file> [namespace_config_file]"
+    exit 1
+fi
+
+# WireGuard configuration file
+wg_config_file="$1"
+
+# Path to the namespaced WireGuard config file to be updated
+namespace_config_file="${2:-/etc/namespaced-wireguard-vpn/namespaced-wireguard-vpn.conf}"
+
+# Check if the files exist
+if [ ! -f "$wg_config_file" ]; then
+    echo "WireGuard config file '$wg_config_file' not found."
+    exit 1
+fi
+
+if [ ! -f "$namespace_config_file" ]; then
+    echo "Namespace config file '$namespace_config_file' not found."
+    exit 1
+fi
+
+# Confirm with the user before proceeding
+read -p "Are you sure you want to update '$namespace_config_file' with values from '$wg_config_file'? (y/n): " confirm
+if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+    echo "Update canceled."
+    exit 0
+fi
+
+# Function to extract a value from the WireGuard config file
+get_wg_property() {
+    local property_name="$1"
+    grep -i "^$property_name" "$wg_config_file" | awk -F ' = ' '{print $2}' | tr -d '[:space:]'
+}
+
+# Mapping WireGuard config properties to namespace environment variables
+declare -A env_var_mapping=(
+    # Interface
+    ["Address"]="WIREGUARD_IP_ADDRESSES"
+    ["PrivateKey"]="WIREGUARD_PRIVATE_KEY"
+    ["MTU"]="WIREGUARD_INITIAL_MTU"
+
+    # Peer
+    ["PublicKey"]="WIREGUARD_VPN_PUBLIC_KEY"
+    ["PresharedKey"]="WIREGUARD_VPN_PRESHARED_KEY"
+    ["Endpoint"]="WIREGUARD_ENDPOINT"
+    ["AllowedIPs"]="WIREGUARD_ALLOWED_IPS"
+)
+
+# Loop through each key-value pair in the mapping and replace in namespace config
+for wg_key in "${!env_var_mapping[@]}"; do
+    env_var="${env_var_mapping[$wg_key]}"
+    wg_value=$(get_wg_property "$wg_key")
+
+    # If the value is found, replace it in the namespace config file
+    if [ -n "$wg_value" ]; then
+        sed -i "s|^$env_var=.*|$env_var=$wg_value|" "$namespace_config_file" || die
+        echo "Updated $env_var in $namespace_config_file with value from $wg_key"
+    else
+        echo "Warning: $wg_key not found in $wg_config_file, skipping $env_var"
+    fi
+done
+
+echo "Namespace configuration file updated successfully."
