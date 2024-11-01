@@ -73,6 +73,8 @@ expected values are set by default, most with dummy default values.
   The endpoint of the VPN provider's WireGuard server.
 - `WIREGUARD_VPN_PUBLIC_KEY`:
   The public key of the VPN provider's WireGuard peer.
+- `WIREGUARD_VPN_PRESHARED_KEY`:
+  Preshared key of the VPN WireGuard peer (optional).
 - `WIREGUARD_ALLOWED_IPS`:
   Comma-separated list of IP addresses that may be contacted using the
   WireGuard interface. For a namespaced VPN, where the goal is to force all
@@ -100,7 +102,7 @@ expected values are set by default, most with dummy default values.
 - `TUNNEL_VPN_IP_ADDRESSES`:
   Comma-separated list of static IP addresses to assign to the tunnel interface
   in the VPN network namespace.
-  
+
 #### Tunnel
 
 This package provides a tunnel between the init namesapce and the created VPN

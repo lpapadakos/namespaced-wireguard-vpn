@@ -9,11 +9,20 @@ case "$1" in
     up)
         ip link add "$WIREGUARD_NAME" mtu $WIREGUARD_INITIAL_MTU type wireguard || die
 
-        wg set "$WIREGUARD_NAME" \
-            private-key <(echo "$WIREGUARD_PRIVATE_KEY") \
-            peer "$WIREGUARD_VPN_PUBLIC_KEY" \
-                endpoint "$WIREGUARD_ENDPOINT" \
-                allowed-ips "$WIREGUARD_ALLOWED_IPS" || die
+        if [ -n "$WIREGUARD_VPN_PRESHARED_KEY" ]; then
+            wg set "$WIREGUARD_NAME" \
+                private-key <(echo "$WIREGUARD_PRIVATE_KEY") \
+                peer "$WIREGUARD_VPN_PUBLIC_KEY" \
+                    preshared-key <(echo "$WIREGUARD_VPN_PRESHARED_KEY") \
+                    endpoint "$WIREGUARD_ENDPOINT" \
+                    allowed-ips "$WIREGUARD_ALLOWED_IPS" || die
+        else
+            wg set "$WIREGUARD_NAME" \
+                private-key <(echo "$WIREGUARD_PRIVATE_KEY") \
+                peer "$WIREGUARD_VPN_PUBLIC_KEY" \
+                    endpoint "$WIREGUARD_ENDPOINT" \
+                    allowed-ips "$WIREGUARD_ALLOWED_IPS" || die
+        fi
 
         ip link set "$WIREGUARD_NAME" netns "$NETNS_NAME" || die
 
@@ -27,7 +36,7 @@ case "$1" in
         # Add default routes for IPv4 and IPv6
         ip -n "$NETNS_NAME" -4 route add default dev "$WIREGUARD_NAME" || die
         if ip -o -6 -a | grep -q "$WIREGUARD_NAME"
-        then 
+        then
             ip -n "$NETNS_NAME" -6 route add default dev "$WIREGUARD_NAME" || die
         fi
         ;;
